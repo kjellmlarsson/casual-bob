@@ -57,8 +57,8 @@ A summary of what each component does. The component specs (section 9) hold the 
 - The HTTP call has a connect timeout and a total timeout, both configurable by server arguments,
   with a total default of 5 seconds. It follows no redirects and limits the response size.
 - It is written in C++ against the public XATMI API, uses libcurl for HTTP, and is built with
-  `casual-build-server`. It uses no Casual headers other than those installed with the Casual runtime,
-  and does not link `libcasual-common`.
+  `casual-build-server`. It uses no Casual headers other than those installed with the Casual runtime
+  (no internal `common/*` headers).
 - The JSON body is parsed with [nlohmann/json](https://github.com/nlohmann/json) (MIT licence), the
   single-header `json.hpp`. It is vendored in `casual/third_party/nlohmann/` together with its licence
   text, so the build needs no network access and no Casual source tree.
