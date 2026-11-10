@@ -17,4 +17,3 @@ spec:
     to:
       kind: ImageStreamTag
       name: catfacts:latest
-  triggers: []
