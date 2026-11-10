@@ -4,7 +4,9 @@ Part of [casual-bob](../SPEC.md). That overview defines the interfaces between t
 This document defines the `casual` component: the `catfacts/random` service, the domain definition and
 the container image.
 
-Status: draft, not yet implemented.
+Status: implemented. All acceptance criteria (section 8) passed on 2026-11-10, against an image built
+locally from this repository (`localhost/catfacts:dev`, image id `6800998674bd`) on the base image
+`docker.io/casual/middleware:1.8.17`.
 
 ## 1. Purpose
 
