@@ -1,0 +1,31 @@
+# Bootstrap: apply this file once with `oc apply -f`. Argo CD deploys everything else.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: casual-bob
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/kjellmlarsson/casual-bob.git
+    targetRevision: main
+    path: deploy/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: casual
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    managedNamespaceMetadata:
+      labels:
+        argocd.argoproj.io/managed-by: openshift-gitops
+  # The image.openshift.io/triggers annotation sets the image; Argo CD must not undo it.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jqPathExpressions:
+        - .spec.template.spec.containers[].image
