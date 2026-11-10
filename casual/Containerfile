@@ -1,0 +1,23 @@
+ARG BASE_IMAGE=docker.io/casual/middleware:1.8.17
+
+# Build stage: compile the catfacts server with casual-build-server.
+FROM ${BASE_IMAGE} AS build
+
+USER root
+ENV PATH=/opt/rh/gcc-toolset-14/root/usr/bin:${PATH}
+
+WORKDIR /build
+COPY services.yaml ./
+COPY src/ src/
+COPY third_party/ third_party/
+
+RUN casual-build-server \
+      --output casual-catfacts-server \
+      --definition services.yaml \
+      --build-directives -std=c++23 -O2 -Wall -Wextra -Isrc -Ithird_party src/catfacts.cpp -lcurl
+
+# Runtime stage: the same Casual base image, plus the server and the domain definition.
+FROM ${BASE_IMAGE}
+
+COPY --from=build /build/casual-catfacts-server ${CASUAL_HOME}/bin/casual-catfacts-server
+COPY domain.yaml ${CASUAL_DOMAIN_HOME}/configuration/domain.yaml
