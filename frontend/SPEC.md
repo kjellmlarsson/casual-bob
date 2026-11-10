@@ -107,9 +107,10 @@ One page, Carbon `white` theme, within a `Grid`/`Column` layout (single centred 
      `emptyDir` at `/tmp`.
    - Exposes `8080`. Entrypoint is `start.sh`.
 
-The exact image tags are pinned when the Containerfile is written and checked to be pullable from an
-OpenShift build. If the runtime image has no `envsubst`, `start.sh` does the substitution another way
-and this section is updated.
+Pinned tags: build `ubi9/nodejs-22:1-1793903405`, runtime `ubi9/nginx-126:1-1793639981` (nginx 1.26.3).
+The runtime image ships `envsubst`, so `start.sh` uses it. The files are placed in `/opt/app-root/`
+(`html/`, `nginx.conf.template`, `start.sh`), and the rendered config goes to `/tmp/nginx.conf`.
+Pulling the tags from an OpenShift build is checked in acceptance criterion 12.
 
 ## 6. Deploy manifests
 

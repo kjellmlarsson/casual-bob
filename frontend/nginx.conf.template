@@ -1,0 +1,74 @@
+# Rendered by start.sh into /tmp/nginx.conf. Only ${BACKEND_HOST}, ${BACKEND_PORT} and
+# ${NGINX_RESOLVER} are substituted; nginx's own $variables are left alone.
+# Everything nginx writes at runtime is under /tmp, so the root filesystem can be read-only.
+
+worker_processes auto;
+pid /tmp/nginx.pid;
+error_log /dev/stderr notice;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    access_log /dev/stdout;
+    sendfile on;
+    server_tokens off;
+
+    client_body_temp_path /tmp/client_body;
+    proxy_temp_path /tmp/proxy;
+    fastcgi_temp_path /tmp/fastcgi;
+    uwsgi_temp_path /tmp/uwsgi;
+    scgi_temp_path /tmp/scgi;
+
+    server {
+        listen 8080 default_server;
+        listen [::]:8080 default_server;
+
+        root /opt/app-root/html;
+
+        # Cluster DNS, so the backend name is looked up per request and nginx starts without it
+        resolver ${NGINX_RESOLVER} valid=10s;
+
+        location / {
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header Referrer-Policy "same-origin" always;
+            add_header Cache-Control "no-cache" always;
+            try_files $uri /index.html;
+        }
+
+        # Hashed build output, safe to cache for a long time
+        location /assets/ {
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header Referrer-Policy "same-origin" always;
+            add_header Cache-Control "public, max-age=31536000, immutable" always;
+            try_files $uri =404;
+        }
+
+        location = /healthz {
+            access_log off;
+            default_type text/plain;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header Referrer-Policy "same-origin" always;
+            return 200 "ok\n";
+        }
+
+        location /api/ {
+            # A variable in proxy_pass makes nginx resolve the name at request time.
+            # Without a URI part the request path is passed on unchanged.
+            set $backend "http://${BACKEND_HOST}:${BACKEND_PORT}";
+            proxy_pass $backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+            proxy_connect_timeout 5s;
+            proxy_read_timeout 15s;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header Referrer-Policy "same-origin" always;
+        }
+    }
+}

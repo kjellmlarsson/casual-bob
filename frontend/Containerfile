@@ -1,0 +1,28 @@
+# Build stage: compile the Vite app with Node 22
+FROM registry.access.redhat.com/ubi9/nodejs-22:1-1793903405 AS build
+
+WORKDIR /opt/app-root/src
+
+# Dependency layer first so it is cached across source changes
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# Runtime stage: UBI 9 nginx. Runs as non-root and works with OpenShift arbitrary UIDs
+# (group 0 owns and can read/execute the files). Only /tmp needs to be writable.
+FROM registry.access.redhat.com/ubi9/nginx-126:1-1793639981
+
+COPY --from=build --chown=1001:0 /opt/app-root/src/dist/ /opt/app-root/html/
+COPY --chown=1001:0 nginx.conf.template /opt/app-root/nginx.conf.template
+COPY --chown=1001:0 start.sh /opt/app-root/start.sh
+
+USER 0
+RUN chmod -R g=u /opt/app-root/html /opt/app-root/nginx.conf.template \
+    && chmod 0755 /opt/app-root/start.sh
+USER 1001
+
+EXPOSE 8080
+
+ENTRYPOINT ["/opt/app-root/start.sh"]
