@@ -1,0 +1,10 @@
+{
+  "domain": {
+    "name": "backend-casual-domain"
+  },
+  "unmanaged": true,
+  "outbound": {
+    "unmanaged": true,
+    "useEpoll": false
+  }
+}
