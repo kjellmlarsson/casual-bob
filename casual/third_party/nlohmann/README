@@ -1,0 +1,14 @@
+nlohmann/json (JSON for Modern C++), vendored single header.
+
+Release:  v3.12.0 (2025-04-11)
+Source:   https://github.com/nlohmann/json/releases/download/v3.12.0/json.hpp
+License:  MIT, see LICENSE.MIT (from the v3.12.0 tag)
+
+SHA-256 of json.hpp:
+aaf127c04cb31c406e5b04a63f1ae89369fccde6d8fa7cdda1ed4f32dfc5de63
+
+Verify:
+  shasum -a 256 json.hpp      (macOS)
+  sha256sum json.hpp          (Linux)
+
+Use: add -I casual/third_party and write #include <nlohmann/json.hpp>.
