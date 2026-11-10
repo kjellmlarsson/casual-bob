@@ -1,0 +1,19 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: catfacts
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/kjellmlarsson/casual-bob.git
+      ref: main
+    contextDir: casual
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: catfacts:latest
