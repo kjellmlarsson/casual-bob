@@ -4,3 +4,34 @@
 @use '@carbon/react' with (
   $font-path: '@ibm/plex'
 );
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/theme';
+@use '@carbon/react/scss/type';
+
+.cat-facts {
+  padding-block: $spacing-07;
+
+  &__title {
+    @include type.type-style('heading-05');
+
+    margin-block-end: $spacing-06;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-05;
+    margin-block-end: $spacing-06;
+  }
+
+  // Carbon caps the width of an inline notification. Let it fill the column.
+  &__notification {
+    max-inline-size: 100%;
+    margin-block-end: $spacing-06;
+  }
+
+  &__placeholder {
+    color: theme.$text-secondary;
+  }
+}
