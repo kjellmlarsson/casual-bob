@@ -1,0 +1,9 @@
+server:
+
+  services:
+
+    - name: catfacts/random
+      function: catfacts_random
+      # a third-party HTTP call cannot take part in an XA transaction, and casual_service_forward
+      # fails if a transaction is pending
+      transaction: none

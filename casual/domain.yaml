@@ -1,0 +1,21 @@
+domain:
+  name: catfacts-domain
+
+  servers:
+    - alias: uppercase
+      path: ${CASUAL_HOME}/example/bin/casual-example-server
+      instances: 1
+      restrictions:
+        - casual/example/uppercase
+
+    - alias: catfacts
+      path: ${CASUAL_HOME}/bin/casual-catfacts-server
+      instances: 1
+      arguments: [ --forward, casual/example/uppercase]
+
+  gateway:
+    inbound:
+      groups:
+        - alias: in
+          connections:
+            - address: "0.0.0.0:7771"
