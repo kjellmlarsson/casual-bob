@@ -4,12 +4,16 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
+import org.jboss.logging.Logger;
 
 @Provider
 public class CasualExceptionMapper implements ExceptionMapper<Throwable> {
 
+    private static final Logger LOG = Logger.getLogger(CasualExceptionMapper.class);
+
     @Override
     public Response toResponse(Throwable exception) {
+        LOG.error("Request failed", exception);
         if (exception instanceof CasualTimeoutException) {
             return Response.status(Response.Status.GATEWAY_TIMEOUT)
                     .type(MediaType.APPLICATION_JSON)
