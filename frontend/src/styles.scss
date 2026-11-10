@@ -1,0 +1,6 @@
+// Bring in all the styles for Carbon in your root/global stylesheet.
+// $font-path: Carbon's default '~@ibm/plex' is a webpack convention that Vite
+// does not resolve, so point it at the package so the IBM Plex files are bundled.
+@use '@carbon/react' with (
+  $font-path: '@ibm/plex'
+);
