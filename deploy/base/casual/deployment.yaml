@@ -4,7 +4,8 @@ metadata:
   name: casual
   annotations:
     image.openshift.io/triggers: >-
-      [{"from":{"kind":"ImageStreamTag","name":"catfacts:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"casual\")].image"}]
+      [{"from":{"kind":"ImageStreamTag","name":"catfacts:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"casual\")].image"},
+       {"from":{"kind":"ImageStreamTag","name":"catfacts:latest"},"fieldPath":"spec.template.spec.initContainers[?(@.name==\"init-state\")].image"}]
 spec:
   replicas: 1
   selector:
@@ -15,6 +16,21 @@ spec:
       labels:
         app: casual
     spec:
+      # An emptyDir hides the domain directory baked into the image (configuration, logs).
+      # Copy it into the volume first.
+      initContainers:
+        - name: init-state
+          # Placeholder; replaced by the image.openshift.io/triggers annotation.
+          image: catfacts:latest
+          command: ["sh", "-c", "cp -R --preserve=mode,links /test/casual/. /state/"]
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: state
+              mountPath: /state
       containers:
         - name: casual
           # Placeholder; replaced by the image.openshift.io/triggers annotation.
@@ -34,6 +50,11 @@ spec:
           volumeMounts:
             - name: state
               mountPath: /test/casual
+            # Casual creates its IPC directory in /tmp/.casual; the root filesystem is read-only.
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: state
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}
