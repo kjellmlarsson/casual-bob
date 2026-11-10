@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: casual
+  annotations:
+    image.openshift.io/triggers: >-
+      [{"from":{"kind":"ImageStreamTag","name":"catfacts:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"casual\")].image"}]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: casual
+  template:
+    metadata:
+      labels:
+        app: casual
+    spec:
+      containers:
+        - name: casual
+          # Placeholder; replaced by the image.openshift.io/triggers annotation.
+          image: catfacts:latest
+          ports:
+            - containerPort: 7771
+          readinessProbe:
+            tcpSocket:
+              port: 7771
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: state
+              mountPath: /test/casual
+      volumes:
+        - name: state
+          emptyDir: {}
