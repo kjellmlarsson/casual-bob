@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: casual-bob-backend
+data:
+  # Read by backend application.properties (quarkus.ironjacamar.casual.ra.config.host/port)
+  CASUAL_HOST: casual
+  CASUAL_PORT: "7771"

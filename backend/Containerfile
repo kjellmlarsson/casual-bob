@@ -1,0 +1,32 @@
+# Build stage: compile the Quarkus app with the Gradle wrapper on Java 25
+FROM registry.access.redhat.com/ubi9/openjdk-25:1.24 AS build
+
+USER 0
+WORKDIR /build
+
+# Resolve the Gradle distribution first so this layer is cached across source changes
+COPY gradlew settings.gradle build.gradle gradle.properties ./
+COPY gradle/ gradle/
+RUN chmod +x gradlew && ./gradlew --no-daemon --version
+
+COPY src/ src/
+RUN ./gradlew --no-daemon build -x test
+
+# Runtime stage: UBI OpenJDK 25 runtime, runs as non-root and works with OpenShift arbitrary UIDs
+FROM registry.access.redhat.com/ubi9/openjdk-25-runtime:1.24
+
+ENV LANGUAGE='en_US:en'
+
+# Separate layers so the library layer is reused when only application code changes.
+# Group 0 ownership (user 185, group 0) allows OpenShift's random UID to read the files.
+COPY --from=build --chown=185:0 /build/build/quarkus-app/lib/ /deployments/lib/
+COPY --from=build --chown=185:0 /build/build/quarkus-app/*.jar /deployments/
+COPY --from=build --chown=185:0 /build/build/quarkus-app/app/ /deployments/app/
+COPY --from=build --chown=185:0 /build/build/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 8080
+USER 185
+ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]

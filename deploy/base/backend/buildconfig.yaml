@@ -1,0 +1,19 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: casual-bob-backend
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/kjellmlarsson/casual-bob.git
+      ref: main
+    contextDir: backend
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: casual-bob-backend:latest

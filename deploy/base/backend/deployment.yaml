@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: casual-bob-backend
+  annotations:
+    image.openshift.io/triggers: >-
+      [{"from":{"kind":"ImageStreamTag","name":"casual-bob-backend:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"backend\")].image"}]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: casual-bob-backend
+  template:
+    metadata:
+      labels:
+        app: casual-bob-backend
+    spec:
+      containers:
+        - name: backend
+          # Placeholder; replaced by the image.openshift.io/triggers annotation.
+          image: casual-bob-backend:latest
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: casual-bob-backend
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
