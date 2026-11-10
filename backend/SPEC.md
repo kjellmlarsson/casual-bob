@@ -38,7 +38,6 @@ clients, calls the `catfacts/random` Casual service over Casual network protocol
 | `src/main/java/se/bob/ErrorResponse.java` | DTO record for `{"error":"<message>"}` |
 | `src/main/java/se/bob/CasualExceptionMapper.java` | Exception mappers translating Casual errors to 502 / 504 JSON responses |
 | `src/main/resources/application.properties` | Quarkus configuration (IronJacamar RA pool, virtual threads, logging) |
-| `src/main/resources/casual-config.json` | Casual unmanaged outbound domain configuration |
 | `src/test/java/se/bob/FactResourceTest.java` | Quarkus unit and REST endpoint tests (mocked Casual backend) |
 | `Containerfile` | Multi-stage image build (Gradle build stage -> UBI/Temurin Java 25 runtime stage) |
 
@@ -73,21 +72,7 @@ The application supports standard environment variables for OpenShift and local 
 | `quarkus.http.port` | `PORT` | `8080` | HTTP port |
 | `quarkus.ironjacamar.casual.ra.config.host` | `CASUAL_HOST` | `casual` | Casual gateway host |
 | `quarkus.ironjacamar.casual.ra.config.port` | `CASUAL_PORT` | `7771` | Casual gateway port |
-| - | `CASUAL_CONFIG_FILE` | `/deployments/config/casual-config.json` | Path to casual JSON config |
-
-`casual-config.json` is minimal and unmanaged outbound:
-```json
-{
-  "domain": {
-    "name": "backend-casual-domain"
-  },
-  "unmanaged": true,
-  "outbound": {
-    "unmanaged": true,
-    "useEpoll": false
-  }
-}
-```
+| - | `CASUAL_UNMANAGED` | `false` (set to `true` in the OpenShift ConfigMap) | Casual outbound uses its own thread pool instead of a JNDI managed executor, which Quarkus does not have |
 
 ## 5. Container Image: `Containerfile`
 
