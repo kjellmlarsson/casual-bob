@@ -89,6 +89,9 @@ One page, Carbon `white` theme, within a `Grid`/`Column` layout (single centred 
 - The backend name is resolved at request time (`resolver` plus a variable in `proxy_pass`), so nginx
   still starts when the backend is not up yet. `start.sh` takes the resolver address from
   `/etc/resolv.conf`, which is the cluster DNS on OpenShift.
+- nginx's `resolver` ignores the `search` list in `/etc/resolv.conf`, so `start.sh` qualifies a
+  `BACKEND_HOST` without a dot with the `<namespace>.svc.cluster.local` search domain when one is
+  present (OpenShift). Outside Kubernetes the name is used as given.
 - `start.sh` renders only the `BACKEND_*` variables (and the resolver) into the template, so nginx's own
   `$variables` are left alone.
 - It sends `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin`.

@@ -15,6 +15,18 @@ case "$NGINX_RESOLVER" in
     *:*) NGINX_RESOLVER="[$NGINX_RESOLVER]" ;;
 esac
 
+# nginx's resolver ignores the "search" list, so a short Service name does not resolve on its own.
+# On Kubernetes, qualify it with the pod's namespace domain (<namespace>.svc.cluster.local).
+case "$BACKEND_HOST" in
+    *.*) ;;
+    *)
+        NAMESPACE_DOMAIN="$(awk '$1 == "search" { for (i = 2; i <= NF; i++) if ($i ~ /^[^.]+\.svc\.cluster\.local$/) { print $i; exit } }' /etc/resolv.conf)"
+        if [ -n "$NAMESPACE_DOMAIN" ]; then
+            BACKEND_HOST="$BACKEND_HOST.$NAMESPACE_DOMAIN"
+        fi
+        ;;
+esac
+
 export BACKEND_HOST BACKEND_PORT NGINX_RESOLVER
 
 # Substitute only our variables so nginx's own $variables are kept
