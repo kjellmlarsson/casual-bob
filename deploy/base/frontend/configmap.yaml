@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: casual-bob-frontend
 data:
-  # Must match deploy/base/backend/service.yaml (name and port). Read by frontend/start.sh.
-  BACKEND_HOST: casual-bob-backend
+  # Must match deploy/base/backend/service.yaml (name and port) and the namespace in the overlay.
+  # Read by frontend/start.sh. nginx ignores the pod's DNS search list, so the name is fully qualified.
+  BACKEND_HOST: casual-bob-backend.casual.svc.cluster.local
   BACKEND_PORT: "8080"

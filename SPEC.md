@@ -1,11 +1,13 @@
 # Spec: casual-bob, a catfacts web app on OpenShift
 
-Status: revised, not yet implemented. The `catfacts` Casual service is built from scratch in this
-repo, from the requirements in section 4.
+Status: implemented for the `dev` environment. All three components and the `deploy/` manifests
+exist in this repo. Each component spec carries its own status line. Not yet done: the local
+`compose.yaml` run (section 7) and a `prod` overlay (section 5). The `catfacts` Casual service is
+built from scratch in this repo, from the requirements in section 4.
 
 **This is an overview document.** It describes the whole system, the contracts between the three
-components, the repository layout and the deployment. Each component gets its own, more detailed
-spec, written separately before that component is built (see section 9). Where this document and a
+components, the repository layout and the deployment. Each component has its own, more detailed
+spec (see section 9). Where this document and a
 component spec disagree about a component's internals, the component spec wins. Where they disagree
 about an interface between components (section 3), they must be reconciled before building.
 
@@ -68,8 +70,8 @@ A summary of what each component does. The component specs (section 9) hold the 
 
 ### 4.2 Backend
 
-One REST endpoint and a health endpoint for the readiness probe. It maps Casual call errors to the
-status codes in section 3.
+One REST endpoint, and the Quarkus health endpoints `/q/health/live` and `/q/health/ready` for the
+liveness and readiness probes. It maps Casual call errors to the status codes in section 3.
 
 ### 4.3 Frontend
 
@@ -86,25 +88,34 @@ state and an `InlineNotification` on error. It makes no direct calls to Casual o
 ```
 casual-bob/
 ├── SPEC.md                # this overview
-├── README.md
-├── frontend/              # SPEC.md, Carbon React app + Containerfile + nginx.conf
-├── backend/               # SPEC.md, Quarkus project + Containerfile
-├── casual/                # SPEC.md, catfacts server sources, unit test, domain.yaml,
-│   │                      #   Containerfile (two stages: build server, then runtime)
+├── AGENTS.md              # how to work in this repo (gh usage, Casual OpenWiki)
+├── frontend/              # SPEC.md, Carbon React app (Vite, TypeScript), Containerfile,
+│                          #   nginx.conf.template, start.sh (renders the nginx config at startup)
+├── backend/               # SPEC.md, README.md, AGENTS.md, Quarkus project (Gradle), Containerfile
+├── casual/                # SPEC.md, src/ (catfacts.cpp, catfacts.fact.h), test/, services.yaml,
+│   │                      #   domain.yaml, Containerfile (two stages: build server, then runtime),
+│   │                      #   build-test.sh (unit test), shell.sh (boot the domain and call the service)
 │   └── third_party/nlohmann/   # vendored json.hpp + LICENSE.MIT
-├── compose.yaml           # local run of all three containers with podman-compose
 └── deploy/                # everything Argo CD reads
     ├── argocd/
     │   └── casual-bob-app.yaml      # Argo CD Application (in namespace openshift-gitops)
     ├── base/
     │   ├── kustomization.yaml
-    │   ├── frontend/    (deployment.yaml, service.yaml, route.yaml, imagestream.yaml, buildconfig.yaml)
-    │   ├── backend/     (deployment.yaml, service.yaml, configmap.yaml, imagestream.yaml, buildconfig.yaml)
-    │   └── casual/      (deployment.yaml, service.yaml, imagestream.yaml, buildconfig.yaml)
+    │   ├── frontend/    (kustomization.yaml, deployment.yaml, service.yaml, route.yaml, configmap.yaml,
+    │   │                 imagestream.yaml, buildconfig.yaml)
+    │   ├── backend/     (kustomization.yaml, deployment.yaml, service.yaml, configmap.yaml,
+    │   │                 imagestream.yaml, buildconfig.yaml)
+    │   └── casual/      (kustomization.yaml, deployment.yaml, service.yaml, imagestream.yaml,
+    │                     buildconfig.yaml)
     └── overlays/
-        ├── dev/         (kustomization.yaml: namespace, patches)
-        └── prod/        (kustomization.yaml: namespace, patches)
+        └── dev/         (kustomization.yaml: namespace casual)
 ```
+
+Not yet in the repository, and still wanted:
+
+- a root `README.md`
+- `compose.yaml` (section 7)
+- `deploy/overlays/prod/`
 
 - This is the usual Argo CD reference layout: a Kustomize `base` for the resources, `overlays/<env>`
   for per-environment differences, and one `argocd/` folder for the Application resource.
@@ -122,8 +133,11 @@ casual-bob/
   `ignoreDifferences` on the container `image` fields, so Argo CD does not undo the trigger.
 - **Runtime:** one Deployment (1 replica) and one ClusterIP Service per container. One Route (TLS
   edge) to `frontend`. `backend` and `casual` are internal only.
-- **Config:** the backend's settings (the Casual config JSON, host and port) come from a ConfigMap in
-  `base/backend`.
+- **Config:** the backend's settings come from a ConfigMap in `base/backend` (`CASUAL_HOST`,
+  `CASUAL_PORT`, `CASUAL_UNMANAGED`). The frontend's `BACKEND_HOST` and `BACKEND_PORT` come from a
+  ConfigMap in `base/frontend`. `BACKEND_HOST` is fully qualified (`<service>.<namespace>.svc.cluster.local`),
+  because nginx ignores the pod's DNS search list. It must match the backend Service and the namespace
+  in the overlay.
 - **Egress:** the `casual` pod needs outbound HTTPS to `catfact.ninja`.
 - **Argo CD Application:** `deploy/argocd/casual-bob-app.yaml` points at `deploy/overlays/dev` in the
   GitHub repo, with automated sync, prune and self-heal. It lives in the `openshift-gitops` namespace.
@@ -136,8 +150,10 @@ casual-bob/
 
 ## 7. Local run
 
-`compose.yaml` runs the same three containers with `podman-compose`, so the path can be tested before
-OpenShift.
+Planned, not yet implemented: a `compose.yaml` that runs the same three containers with
+`podman-compose`, so the path can be tested before OpenShift. Until then, `casual/shell.sh` boots the
+`casual` container's domain and calls `catfacts/random`, and `backend/` and `frontend/` can each be
+run from their own tooling (see their specs).
 
 ## 8. Out of scope
 
@@ -147,7 +163,8 @@ and changes to the Casual source.
 ## 9. Component specs
 
 One spec per component, each in the component's folder. A component spec covers its requirements,
-interfaces, files, build, tests and acceptance criteria. None of them is written yet.
+interfaces, files, build, tests and acceptance criteria. The status of each is in its own status line,
+which is the source of truth.
 
 | Component | Spec | Covers |
 |---|---|---|
@@ -155,5 +172,5 @@ interfaces, files, build, tests and acceptance criteria. None of them is written
 | `backend` | `backend/SPEC.md` | the Quarkus REST endpoint, the Casual connection, error mapping, the image |
 | `frontend` | `frontend/SPEC.md` | the Carbon React page, the nginx configuration, the image |
 
-Build order: `casual`, then `backend`, then `frontend`, then `deploy/`. Each component spec is
-approved before that component is built.
+Build order was `casual`, then `backend`, then `frontend`, then `deploy/`. Each component spec was
+to be approved before that component was built.

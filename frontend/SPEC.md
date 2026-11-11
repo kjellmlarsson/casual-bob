@@ -4,7 +4,9 @@ Part of [casual-bob](../SPEC.md). That overview defines the interfaces between t
 This document defines the `frontend` component: the Carbon React page, the nginx configuration and
 the container image.
 
-Status: draft.
+Status: implemented. `npm test` (11 tests), `npm run lint` and `npm run build` pass (run on 2026-11-11).
+The commit "frontend: verified on OpenShift (fixes #18)" records the OpenShift check, but the results
+per acceptance criterion (section 8) are not recorded here.
 
 ## 1. Purpose
 
@@ -31,7 +33,7 @@ in both. The backend is internal only, so the connection is plain HTTP to the in
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `BACKEND_HOST` | `casual-bob-backend` | Host name of the backend Service (in compose, the backend service name) |
+| `BACKEND_HOST` | `casual-bob-backend` | Host name of the backend Service. It must resolve without the DNS search list: fully qualified on OpenShift, the service name in compose. |
 | `BACKEND_PORT` | `8080` | Port of the backend |
 
 ## 3. Files
@@ -89,9 +91,9 @@ One page, Carbon `white` theme, within a `Grid`/`Column` layout (single centred 
 - The backend name is resolved at request time (`resolver` plus a variable in `proxy_pass`), so nginx
   still starts when the backend is not up yet. `start.sh` takes the resolver address from
   `/etc/resolv.conf`, which is the cluster DNS on OpenShift.
-- nginx's `resolver` ignores the `search` list in `/etc/resolv.conf`, so `start.sh` qualifies a
-  `BACKEND_HOST` without a dot with the `<namespace>.svc.cluster.local` search domain when one is
-  present (OpenShift). Outside Kubernetes the name is used as given.
+- nginx's `resolver` ignores the `search` list in `/etc/resolv.conf`, so `BACKEND_HOST` must resolve
+  without it. On OpenShift the ConfigMap uses the fully qualified Service name
+  (`casual-bob-backend.casual.svc.cluster.local`). In compose the service name already resolves.
 - `start.sh` renders only the `BACKEND_*` variables (and the resolver) into the template, so nginx's own
   `$variables` are left alone.
 - It sends `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin`.
@@ -126,16 +128,18 @@ the dev overlay need no change: the Application's `ignoreDifferences` already co
 |---|---|
 | `imagestream.yaml` | `ImageStream` `casual-bob-frontend` |
 | `buildconfig.yaml` | `BuildConfig` `casual-bob-frontend`: Git source `https://github.com/kjellmlarsson/casual-bob.git`, `ref: main`, `contextDir: frontend`, Docker strategy with `dockerfilePath: Containerfile`, output to `ImageStreamTag` `casual-bob-frontend:latest` |
-| `configmap.yaml` | `ConfigMap` `casual-bob-frontend` with `BACKEND_HOST: casual-bob-backend` and `BACKEND_PORT: "8080"` |
+| `configmap.yaml` | `ConfigMap` `casual-bob-frontend` with `BACKEND_HOST: casual-bob-backend.casual.svc.cluster.local` and `BACKEND_PORT: "8080"` |
 | `deployment.yaml` | `Deployment` `casual-bob-frontend`, 1 replica, label `app: casual-bob-frontend`. Container `frontend` on `8080`, `envFrom` the ConfigMap, the `image.openshift.io/triggers` annotation following `casual-bob-frontend:latest` (placeholder image as in the backend). Liveness and readiness probes on `GET /healthz`. Security context: `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, all capabilities dropped. `emptyDir` mounted at `/tmp`. |
 | `service.yaml` | `Service` `casual-bob-frontend`, ClusterIP, port `8080` |
 | `route.yaml` | `Route` `casual-bob-frontend` to the Service, TLS `edge` termination, `insecureEdgeTerminationPolicy: Redirect`. No `host`, so OpenShift generates it. |
 | `kustomization.yaml` | Lists the files above |
 
 - The ConfigMap values match the backend Service in `deploy/base/backend/service.yaml` (name
-  `casual-bob-backend`, port `8080`). Changing one requires changing the other.
+  `casual-bob-backend`, port `8080`) and the namespace in `deploy/overlays/dev` (`casual`, used in
+  the fully qualified host name). Changing one requires changing the other.
 - The pod does not set a user ID, so OpenShift assigns one from the namespace range.
-- The repo is public, so the manifests hold no secrets and no cluster-specific host names.
+- The repo is public, so the manifests hold no secrets and no cluster-specific host names (the
+  in-cluster Service name above is not one).
 - After a change to the frontend code the image is rebuilt with `oc start-build casual-bob-frontend`
   (overview section 6). No one runs `oc apply`.
 
