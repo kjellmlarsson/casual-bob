@@ -78,4 +78,22 @@ describe('App', () => {
     expect(screen.queryByText('Casual is not reachable')).not.toBeInTheDocument()
     expect(screen.getByText('Fetching a cat fact…')).toBeInTheDocument()
   })
+
+  it('test_sequence_diagram_link__opens_modal_with_image_and_close_button_closes_it', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn())
+    render(<App />)
+    const modal = () => document.querySelector('.cds--modal')
+
+    expect(modal()).not.toHaveClass('is-visible')
+
+    await user.click(screen.getByRole('link', { name: 'Sequence Diagram' }))
+
+    expect(modal()).toHaveClass('is-visible')
+    expect(screen.getByAltText('Call sequence diagram')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+
+    expect(modal()).not.toHaveClass('is-visible')
+  })
 })

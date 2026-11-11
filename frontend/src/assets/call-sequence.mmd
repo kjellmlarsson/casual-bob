@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    actor User as Browser
+    participant Route as OpenShift Route<br/>(TLS edge)
+    participant FE as frontend<br/>nginx + React
+    participant BE as backend<br/>Quarkus
+    participant GW as casual<br/>gateway inbound :7771
+    participant CF as casual<br/>catfacts server
+    participant UC as casual<br/>casual/example/uppercase
+    participant API as catfact.ninja
+
+    User->>Route: GET /api/fact (HTTPS)
+    Route->>FE: GET /api/fact
+    FE->>BE: proxy GET /api/fact
+    BE->>GW: tpcall catfacts/random (empty X_OCTET)
+    GW->>CF: catfacts/random
+    CF->>API: GET https://catfact.ninja/fact
+    API-->>CF: 200 {"fact":"...","length":n}
+    CF->>UC: casual_service_forward<br/>casual/example/uppercase
+    UC-->>GW: fact text upper-cased (X_OCTET)
+    GW-->>BE: reply buffer
+    BE-->>FE: 200 {"fact":"CAT FACT TEXT"}
+    FE-->>Route: 200 JSON
+    Route-->>User: 200 JSON
+    Note over User: Tile shows the fact
