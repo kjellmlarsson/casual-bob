@@ -39,10 +39,9 @@ spec:
             - containerPort: 7771
           # A tcpSocket probe connects to 7771 and closes without the casual handshake, which the
           # inbound gateway logs as "communication-unavailable" errors every probe period.
-          # CASUAL_LOG_PATH is overridden because the casual CLI refuses to run when the log is tied to stdout.
           readinessProbe:
             exec:
-              command: ["sh", "-c", "CASUAL_LOG_PATH=/dev/null casual domain --list-servers >/dev/null"]
+              command: ["sh", "-c", "CASUAL_LOG_PATH=/tmp/probe.log casual domain --list-servers >/dev/null"]
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 5
