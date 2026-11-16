@@ -2,11 +2,17 @@ sequenceDiagram
     autonumber
     actor User as Browser
     participant Route as OpenShift Route<br/>(TLS edge)
+    box frontend pod
     participant FE as frontend<br/>nginx + React
+    end
+    box backend pod
     participant BE as backend<br/>Quarkus
+    end
+    box casual pod (single domain, two servers)
     participant GW as casual<br/>gateway inbound :7771
     participant CF as casual<br/>catfacts server
     participant UC as casual<br/>casual/example/uppercase
+    end
     participant API as catfact.ninja
 
     User->>Route: GET /api/fact (HTTPS)
